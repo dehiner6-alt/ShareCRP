@@ -1,20 +1,23 @@
 #pragma once
 #include <Geode/Geode.hpp>
-#include <Geode/ui/Popup.hpp>
-#include <Geode/ui/TextInput.hpp>
-#include <Geode/utils/web.hpp>
 
 using namespace geode::prelude;
 
 class ShareCRPPopup : public Popup<int> {
 protected:
-    TextInput* m_inputField = nullptr;
-    EventListener<web::WebTask> m_listener;
-    int m_targetAccountID;
+    int m_targetAccountID = 0;
+    CCLabelBMFont *m_crpLabel = nullptr;
+    int m_selectedCRP = 0;
 
     bool setup(int accountID) override;
-    void onsubmitButton(CCObject* sender);
+
+    void onDecrease(CCObject *);
+    void onIncrease(CCObject *);
+    void onCancel(CCObject *);
+    void onSubmit(CCObject *);
+
+    void updateCRPVisuals(int crp);
 
 public:
-    static ShareCRPPopup* create(int accountID);
+    static ShareCRPPopup *create(int accountID);
 };
