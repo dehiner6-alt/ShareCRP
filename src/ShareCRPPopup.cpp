@@ -1,14 +1,12 @@
 #include "ShareCRPPopup.hpp"
 
-bool ShareCRPPopup::setup(int accountID) {
+bool ShareCRPPopup::init(int accountID) {
     if (!Popup::init(330.f, 170.f))
         return false;
 
     m_targetAccountID = accountID;
 
-    this->setTitle("Share CRP", "bigFont.fnt", 1.0f);
-    m_title->setPositionY(m_title->getPositionY() - 5.f);
-
+    this->setTitle("Share CRP");
     this->setID("share-crp-popup"_spr);
 
     /*
@@ -85,18 +83,7 @@ void ShareCRPPopup::onCancel(CCObject *) {
 }
 
 void ShareCRPPopup::onSubmit(CCObject *) {
-    // Aquí ejecutas la lógica para enviar el CRP al servidor o mediante comando del juego
-    // Por ejemplo, usando GameLevelManager o tu propia petición web
-    
     log::debug("Enviando {} CRP para la cuenta ID: {}", m_selectedCRP, m_targetAccountID);
-
-    // Ejemplo mandando un comando al chat o ejecutando tu función:
-    /*
-    GameLevelManager::sharedState()->uploadComment(
-        fmt::format("!sharecrp {} {}", m_targetAccountID, m_selectedCRP),
-        CommentType::Level, 0, 0
-    );
-    */
 
     FLAlertLayer::create("ShareCRP", fmt::format("¡Asignados {} CRP con éxito!", m_selectedCRP), "OK")->show();
     this->onClose(nullptr);
