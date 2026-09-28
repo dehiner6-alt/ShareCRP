@@ -9,11 +9,12 @@ using namespace geode::prelude;
 class ShareCRPPopup : public Popup<int> {
 protected:
     TextInput* m_inputField = nullptr;
-    EventListener<web::WebTask> m_webListener;
-    int m_accountID;
+    EventListener<web::WebTask> m_listener;
+    int m_targetAccountID;
 
     bool setup(int accountID) override;
-    void onSubmit(CCObject*);
+    void onsubmitButton(CCObject* sender);
+
 public:
     static ShareCRPPopup* create(int accountID);
 };
