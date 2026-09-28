@@ -1,66 +1,118 @@
 #include "ShareCRPPopup.hpp"
 
-ShareCRPPopup* ShareCRPPopup::create(int accountID) {
-    auto ret = new ShareCRPPopup();
-    if (ret && ret->init(360.f, 200.f, "GJ_square01.png")) {
-        ret->m_targetAccountID = accountID;
-        ret->autorelease();
-        return ret;
-    }
-    CC_SAFE_DELETE(ret);
-    return nullptr;
-}
-
 bool ShareCRPPopup::setup(int accountID) {
-    auto winSize = m_size;
+    if (!Popup::init(330.f, 170.f))
+        return false;
 
-    // Título de la ventana
-    auto title = CCLabelBMFont::create("Share Creator Points", "goldFont.fnt");
-    title->setPosition({winSize.width / 2, winSize.height - 25.f});
-    title->setScale(0.7f);
-    m_mainLayer->addChild(title);
+    m_targetAccountID = accountID;
 
-    // Campo de texto para los puntos
-    m_inputField = TextInput::create(220.f, "Amount", "chatFont.fnt");
-    m_inputField->setPosition({winSize.width / 2, winSize.height / 2 + 10.f});
-    m_mainLayer->addChild(m_inputField);
+    this->setTitle("Share CRP", "bigFont.fnt", 1.0f);
+    m_title->setPositionY(m_title->getPositionY() - 5.f);
 
-    // Botón de enviar
-    auto submitBtn = CCMenuItemSpriteExtra::create(
-        ButtonSprite::create("Submit", "goldButton_01.png"),
+    this->setID("share-crp-popup"_spr);
+
+    /*
+        LOWER CRP BUTTON LOGIC
+    */
+    auto *decreaseButton = CCMenuItemSpriteExtra::create(
+        CCSprite::createWithSpriteFrameName("GJ_arrow_02_001.png"),
         this,
-        menu_selector(ShareCRPPopup::onsubmitButton)
+        menu_selector(ShareCRPPopup::onDecrease)
     );
+    decreaseButton->setRotation(-90.f);
+    decreaseButton->setID("decrease-crp-button"_spr);
+    m_buttonMenu->addChildAtPosition(decreaseButton, Anchor::Center, { -60.f, 0.f });
+
+    /*
+        CRP LABEL LOGIC
+    */
+    m_crpLabel = CCLabelBMFont::create("0", "bigFont.fnt");
+    m_crpLabel->setID("crp-label"_spr);
+    m_buttonMenu->addChildAtPosition(m_crpLabel, Anchor::Center, { 0.f, 0.f });
+
+    /*
+        INCREASE CRP BUTTON LOGIC
+    */
+    auto *increaseButton = CCMenuItemSpriteExtra::create(
+        CCSprite::createWithSpriteFrameName("GJ_arrow_02_001.png"),
+        this,
+        menu_selector(ShareCRPPopup::onIncrease)
+    );
+    increaseButton->setRotation(90.f);
+    increaseButton->setID("increase-crp-button"_spr);
+    m_buttonMenu->addChildAtPosition(increaseButton, Anchor::Center, { 60.f, 0.f });
+
+    /*
+        CANCEL BUTTON LOGIC
+    */
+    auto *cancelButton = CCMenuItemSpriteExtra::create(
+        ButtonSprite::create("Cancel", "goldFont.fnt", "GJ_button_01.png"),
+        this,
+        menu_selector(ShareCRPPopup::onCancel)
+    );
+    cancelButton->setID("cancel-button"_spr);
+    m_buttonMenu->addChildAtPosition(cancelButton, Anchor::Bottom, { -60.f, 25.f });
     
-    auto menu = CCMenu::create();
-    menu->addChild(submitBtn);
-    menu->setPosition({winSize.width / 2, 45.f});
-    m_mainLayer->addChild(menu);
+    /*
+        SUBMIT BUTTON LOGIC
+    */
+    auto *submitButton = CCMenuItemSpriteExtra::create(
+        ButtonSprite::create("Submit", "goldFont.fnt", "GJ_button_01.png"),
+        this,
+        menu_selector(ShareCRPPopup::onSubmit)
+    );
+    submitButton->setID("submit-button"_spr);
+    m_buttonMenu->addChildAtPosition(submitButton, Anchor::Bottom, { 60.f, 25.f });
 
     return true;
 }
 
-void ShareCRPPopup::onsubmitButton(CCObject* sender) {
-    auto password = Mod::get()->getSettingValue<std::string>("password");
+void ShareCRPPopup::onDecrease(CCObject *) {
+    if (m_selectedCRP <= 0)
+        return;
+
+    m_selectedCRP--;
+    updateCRPVisuals(m_selectedCRP);
+}
+
+void ShareCRPPopup::onIncrease(CCObject *) {
+    m_selectedCRP++;
+    updateCRPVisuals(m_selectedCRP);
+}
+
+void ShareCRPPopup::onCancel(CCObject *) {
+    this->onClose(nullptr);
+}
+
+void ShareCRPPopup::onSubmit(CCObject *) {
+    // Aquí ejecutas la lógica para enviar el CRP al servidor o mediante comando del juego
+    // Por ejemplo, usando GameLevelManager o tu propia petición web
     
-    // URL del servidor (puedes ajustarla según el endpoint de tu GDPS)
-    std::string serverURL = "http://localhost/addcp"; 
+    log::debug("Enviando {} CRP para la cuenta ID: {}", m_selectedCRP, m_targetAccountID);
 
-    auto req = web::WebRequest();
-    req.header("Authorization", password);
-    req.param("accountID", std::to_string(m_targetAccountID));
-    req.param("cp", m_inputField->getString());
+    // Ejemplo mandando un comando al chat o ejecutando tu función:
+    /*
+    GameLevelManager::sharedState()->uploadComment(
+        fmt::format("!sharecrp {} {}", m_targetAccountID, m_selectedCRP),
+        CommentType::Level, 0, 0
+    );
+    */
 
-    m_listener.bind([this](web::WebTask::Event* e) {
-        if (auto res = e->getValue()) {
-            if (res->ok()) {
-                FLAlertLayer::create("Success", "Creator points granted!", "OK")->show();
-                this->onClose(nullptr);
-            } else {
-                FLAlertLayer::create("Error", "Request failed or unauthorized.", "OK")->show();
-            }
-        }
-    });
+    FLAlertLayer::create("ShareCRP", fmt::format("¡Asignados {} CRP con éxito!", m_selectedCRP), "OK")->show();
+    this->onClose(nullptr);
+}
 
-    m_listener.setFilter(req.post(serverURL));
+void ShareCRPPopup::updateCRPVisuals(int crp) {
+    m_crpLabel->setString(std::to_string(crp).c_str());
+}
+
+ShareCRPPopup *ShareCRPPopup::create(int accountID) {
+    auto ret = new ShareCRPPopup();
+    if (ret && ret->init(accountID)) {
+        ret->autorelease();
+        return ret;
+    }
+
+    delete ret;
+    return nullptr;
 }
