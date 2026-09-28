@@ -4,32 +4,41 @@
 
 using namespace geode::prelude;
 
-class $modify(ShareCRPProfilePage, ProfilePage) {
-    bool init(int accountID, bool isOwnProfile) {
-        if (!ProfilePage::init(accountID, isOwnProfile)) return false;
+class $modify(MyProfilePage, ProfilePage) {
+    void setupPage() {
+        ProfilePage::setupPage();
 
-        // Añadir el botón solo en perfiles de otros usuarios
-        if (!isOwnProfile) {
-            auto menu = this->getChildByID("left-menu");
-            if (!menu) menu = m_mainLayer;
+        // Obtenemos el ID de la cuenta del usuario que estamos viendo en el perfil
+        int accountID = m_accountID;
 
-            auto btnSprite = CircleButtonSprite::createWithSpriteFrameName("geode.loader/geode-logo-outline.png"); // O tu ícono personalizado
-            
-            auto btn = CCMenuItemSpriteExtra::create(
-                btnSprite,
-                this,
-                menu_selector(ShareCRPProfilePage::onShareCRP)
-            );
-            btn->setID("share-cp-button"_spr);
+        // Creamos un botón con el estilo clásico de Geometry Dash (puedes cambiar el texto o el sprite)
+        auto shareCrpBtn = CCMenuItemSpriteExtra::create(
+            ButtonSprite::create("CRP", "goldFont.fnt", "GJ_button_01.png"),
+            this,
+            menu_selector(MyProfilePage::onOpenShareCRP)
+        );
+        shareCrpBtn->setID("share-crp-profile-button"_spr);
 
-            menu->addChild(btn);
+        // Buscamos el menú de la derecha donde están los botones de mensaje, bloquear, etc.
+        // En ProfilePage, este menú suele encontrarse o añadirse al contenedor principal de la derecha.
+        // Vamos a buscar el menú lateral de la derecha (suele llamarse "right-menu" o estar dentro de las capas del perfil).
+        
+        // Una forma segura en ProfilePage es añadirlo al menú de botones que está al lado del avatar:
+        if (auto menu = m_mainLayer->getChildByID("right-menu")) {
+            menu->addChild(shareCrpBtn);
             menu->updateLayout();
+        } else {
+            // Si por estructura el ID varía en tu versión de GDPS, lo añadimos de manera manual al menú principal de botones
+            // Buscando el nodo de botones lateral:
+            if (auto leftMenu = this->getChildByID("other-menu")) { // Ajustamos si es necesario
+                leftMenu->addChild(shareCrpBtn);
+                leftMenu->updateLayout();
+            }
         }
-
-        return true;
     }
 
-    void onShareCRP(CCObject* sender) {
+    void onOpenShareCRP(CCObject*) {
+        // Abrimos la ventana emergente pasándole el ID de la cuenta del usuario actual
         ShareCRPPopup::create(m_accountID)->show();
     }
 };
