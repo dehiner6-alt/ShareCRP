@@ -5,13 +5,13 @@
 using namespace geode::prelude;
 
 class $modify(MyProfilePage, ProfilePage) {
-    void setupPage() {
-        ProfilePage::setupPage();
+    bool init(int accountID, bool p1) {
+        // Llamamos al init original del juego
+        if (!ProfilePage::init(accountID, p1)) {
+            return false;
+        }
 
-        // Obtenemos el ID de la cuenta del usuario que estamos viendo en el perfil
-        int accountID = m_accountID;
-
-        // Creamos un botón con el estilo clásico de Geometry Dash (puedes cambiar el texto o el sprite)
+        // Creamos el botón con texto "CRP"
         auto shareCrpBtn = CCMenuItemSpriteExtra::create(
             ButtonSprite::create("CRP", "goldFont.fnt", "GJ_button_01.png"),
             this,
@@ -19,26 +19,31 @@ class $modify(MyProfilePage, ProfilePage) {
         );
         shareCrpBtn->setID("share-crp-profile-button"_spr);
 
-        // Buscamos el menú de la derecha donde están los botones de mensaje, bloquear, etc.
-        // En ProfilePage, este menú suele encontrarse o añadirse al contenedor principal de la derecha.
-        // Vamos a buscar el menú lateral de la derecha (suele llamarse "right-menu" o estar dentro de las capas del perfil).
-        
-        // Una forma segura en ProfilePage es añadirlo al menú de botones que está al lado del avatar:
-        if (auto menu = m_mainLayer->getChildByID("right-menu")) {
-            menu->addChild(shareCrpBtn);
-            menu->updateLayout();
-        } else {
-            // Si por estructura el ID varía en tu versión de GDPS, lo añadimos de manera manual al menú principal de botones
-            // Buscando el nodo de botones lateral:
-            if (auto leftMenu = this->getChildByID("other-menu")) { // Ajustamos si es necesario
-                leftMenu->addChild(shareCrpBtn);
-                leftMenu->updateLayout();
-            }
+        // Buscamos el menú de la parte inferior del perfil (donde están bloquear, mensaje, etc.)
+        // Intentamos obtener el menú por sus IDs estándar de Geode
+        CCMenu* targetMenu = nullptr;
+
+        if (auto menu = m_mainLayer->getChildByID("user-menu")) {
+            targetMenu = static_cast<CCMenu*>(menu);
+        } else if (auto menu = m_mainLayer->getChildByID("player-menu")) {
+            targetMenu = static_cast<CCMenu*>(menu);
+        } else if (auto menu = m_mainLayer->getChildByID("bottom-menu")) {
+            targetMenu = static_cast<CCMenu*>(menu);
+        } else if (auto menu = m_mainLayer->getChildByID("left-menu")) {
+            targetMenu = static_cast<CCMenu*>(menu);
         }
+
+        // Si encontramos el menú, agregamos el botón y reacomodamos el diseño
+        if (targetMenu) {
+            targetMenu->addChild(shareCrpBtn);
+            targetMenu->updateLayout();
+        }
+
+        return true;
     }
 
     void onOpenShareCRP(CCObject*) {
-        // Abrimos la ventana emergente pasándole el ID de la cuenta del usuario actual
+        // Abrimos el popup pasándole la ID de la cuenta que estamos viendo
         ShareCRPPopup::create(m_accountID)->show();
     }
 };
