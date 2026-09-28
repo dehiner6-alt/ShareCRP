@@ -1,0 +1,16 @@
+{
+    "geode-version": "v4.0.0",
+    "version": "1.0.0",
+    "id": "aalezz.sharecrp",
+    "name": "ShareCRP",
+    "developer": "AaleZz",
+    "description": "A clean mod to share Creator Points with users on any compatible GDPS.",
+    "settings": {
+        "password": {
+            "name": "Server Authorization Password",
+            "description": "Password or token required by your GDPS backend endpoint.",
+            "type": "string",
+            "default": ""
+        }
+    }
+}
