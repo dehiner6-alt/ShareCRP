@@ -3,21 +3,14 @@
 
 using namespace geode::prelude;
 
-class ShareCRPPopup : public Popup {
+class ShareCRPPopup : public Popup<int> {
 protected:
-    int m_targetAccountID = 0;
-    CCLabelBMFont *m_crpLabel = nullptr;
-    int m_selectedCRP = 0;
+    int m_targetLevelID;
+    TextInput* m_pointsInput;
 
-    bool init(int accountID);
-
-    void onDecrease(CCObject *);
-    void onIncrease(CCObject *);
-    void onCancel(CCObject *);
-    void onSubmit(CCObject *);
-
-    void updateCRPVisuals(int crp);
+    bool setup(int levelID) override;
+    void onSubmitButton(CCObject* sender);
 
 public:
-    static ShareCRPPopup *create(int accountID);
+    static ShareCRPPopup* create(int levelID);
 };
