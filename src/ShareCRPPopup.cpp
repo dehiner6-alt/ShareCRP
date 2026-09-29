@@ -2,7 +2,7 @@
 
 ShareCRPPopup* ShareCRPPopup::create(int levelID) {
     auto ret = new ShareCRPPopup();
-    if (ret && ret->init(300.f, 200.f, levelID)) {
+    if (ret && ret->initAnchored(300.f, 200.f, levelID)) {
         ret->autorelease();
         return ret;
     }
@@ -55,7 +55,7 @@ void ShareCRPPopup::onSubmitButton(CCObject* sender) {
     req.bodyString(postData);
     req.header("Content-Type", "application/x-www-form-urlencoded");
 
-    req.post(url, [this](web::WebResponse* response) {
+    req.post(url).listen([this](web::WebResponse* response) {
         if (response->ok()) {
             std::string res = response->string().unwrapOr("");
             
