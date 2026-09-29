@@ -6,12 +6,6 @@
 using namespace geode::prelude;
 
 bool isMyGDPS() {
-    // Verificación segura de la URL del servidor actual en Geometry Dash
-    std::string gameServer = GJAccountManager::sharedState()->m_serverIP;
-    if (gameServer.find("choyhomero.ps.fhgdps.com") != std::string::npos) {
-        return true;
-    }
-    // Puedes retornar true temporalmente aquí si quieres probar sin importar el servidor:
     return true; 
 }
 
@@ -20,19 +14,6 @@ class $modify(MyMenuLayer, MenuLayer) {
         if (!MenuLayer::init()) {
             return false;
         }
-
-        static bool initialCheck = false;
-        if (!initialCheck) {
-            initialCheck = true;
-            if (!isMyGDPS()) {
-                FLAlertLayer::create(
-                    "ShareCRP Notice",
-                    "ShareCRP mod is disabled because you are not connected to your official GDPS.",
-                    "OK"
-                )->show();
-            }
-        }
-
         return true;
     }
 };
@@ -67,13 +48,9 @@ class $modify(MyLevelInfoLayer, LevelInfoLayer) {
         );
         shareCrpBtn->setID("level-share-crp-button"_spr);
 
-        // Añadir de forma segura al menú lateral derecho de la pantalla de info del nivel
         if (auto sideMenu = this->getChildByID("right-side-menu")) {
             sideMenu->addChild(shareCrpBtn);
             sideMenu->updateLayout();
-        } else if (auto menu = m_uiLayer->getChildByID("right-menu")) {
-            menu->addChild(shareCrpBtn);
-            menu->updateLayout();
         }
 
         return true;
@@ -81,7 +58,6 @@ class $modify(MyLevelInfoLayer, LevelInfoLayer) {
 
     void onOpenShareCRP(CCObject*) {
         int currentLevelID = m_level->m_levelID;
-        auto popup = ShareCRPPopup::create(currentLevelID);
-        popup->show();
+        ShareCRPPopup::create(currentLevelID)->show();
     }
 };
