@@ -1,105 +1,97 @@
 #include "ShareCRPPopup.hpp"
 
-bool ShareCRPPopup::init(int accountID) {
-    if (!Popup::init(330.f, 170.f))
+// Método para crear el popup
+ShareCRPPopup* ShareCRPPopup::create(int levelID) {
+    auto ret = new ShareCRPPopup();
+    if (ret && ret->init(levelID)) {
+        ret->autorelease();
+        return ret;
+    }
+    CC_SAFE_DELETE(ret);
+    return nullptr;
+}
+
+bool ShareCRPPopup::init(int levelID) {
+    if (!FLAlertLayer::init(300.f, 200.f)) {
         return false;
+    }
 
-    m_targetAccountID = accountID;
+    m_targetLevelID = levelID;
 
-    this->setTitle("Share CRP");
-    this->setID("share-crp-popup"_spr);
+    // Fondo del popup
+    auto bg = CCScale9Sprite::create("GJ_square01.png", { 0.f, 0.f, 80.f, 80.f });
+    bg->setContentSize({ 300.f, 200.f });
+    bg->setPosition(m_size / 2);
+    m_mainLayer->addChild(bg);
 
-    /*
-        LOWER CRP BUTTON LOGIC
-    */
-    auto *decreaseButton = CCMenuItemSpriteExtra::create(
-        CCSprite::createWithSpriteFrameName("GJ_arrow_02_001.png"),
-        this,
-        menu_selector(ShareCRPPopup::onDecrease)
-    );
-    decreaseButton->setRotation(-90.f);
-    decreaseButton->setID("decrease-crp-button"_spr);
-    m_buttonMenu->addChildAtPosition(decreaseButton, Anchor::Center, { -60.f, 0.f });
+    // Título en inglés
+    auto title = CCLabelBMFont::create("Share Creator Points", "goldFont.fnt");
+    title->setPosition(m_size.width / 2, m_size.height - 30.f);
+    title->setScale(0.7f);
+    m_mainLayer->addChild(title);
 
-    /*
-        CRP LABEL LOGIC
-    */
-    m_crpLabel = CCLabelBMFont::create("0", "bigFont.fnt");
-    m_crpLabel->setID("crp-label"_spr);
-    m_buttonMenu->addChildAtPosition(m_crpLabel, Anchor::Center, { 0.f, 0.f });
+    // Campo de texto para los puntos
+    m_pointsInput = TextInput::create(150.f, "Points", "chatFont.fnt");
+    m_pointsInput->setPosition(m_size / 2);
+    m_pointsInput->setAllowedChars("0123456789-");
+    m_mainLayer->addChild(m_pointsInput);
 
-    /*
-        INCREASE CRP BUTTON LOGIC
-    */
-    auto *increaseButton = CCMenuItemSpriteExtra::create(
-        CCSprite::createWithSpriteFrameName("GJ_arrow_02_001.png"),
-        this,
-        menu_selector(ShareCRPPopup::onIncrease)
-    );
-    increaseButton->setRotation(90.f);
-    increaseButton->setID("increase-crp-button"_spr);
-    m_buttonMenu->addChildAtPosition(increaseButton, Anchor::Center, { 60.f, 0.f });
-
-    /*
-        CANCEL BUTTON LOGIC
-    */
-    auto *cancelButton = CCMenuItemSpriteExtra::create(
-        ButtonSprite::create("Cancel", "goldFont.fnt", "GJ_button_01.png"),
-        this,
-        menu_selector(ShareCRPPopup::onCancel)
-    );
-    cancelButton->setID("cancel-button"_spr);
-    m_buttonMenu->addChildAtPosition(cancelButton, Anchor::Bottom, { -60.f, 25.f });
-    
-    /*
-        SUBMIT BUTTON LOGIC
-    */
-    auto *submitButton = CCMenuItemSpriteExtra::create(
+    // Botón de enviar (Submit)
+    auto submitBtn = CCMenuItemSpriteExtra::create(
         ButtonSprite::create("Submit", "goldFont.fnt", "GJ_button_01.png"),
         this,
-        menu_selector(ShareCRPPopup::onSubmit)
+        menu_selector(ShareCRPPopup::onSubmitButton)
     );
-    submitButton->setID("submit-button"_spr);
-    m_buttonMenu->addChildAtPosition(submitButton, Anchor::Bottom, { 60.f, 25.f });
+    
+    auto menu = CCMenu::create();
+    menu->addChild(submitBtn);
+    menu->setPosition(m_size.width / 2, 45.f);
+    m_mainLayer->addChild(menu);
 
     return true;
 }
 
-void ShareCRPPopup::onDecrease(CCObject *) {
-    if (m_selectedCRP <= 0)
-        return;
+void ShareCRPPopup::onSubmitButton(CCObject* sender) {
+    std::string pointsStr = m_pointsInput->getString();
+    if (pointsStr.empty()) return;
 
-    m_selectedCRP--;
-    updateCRPVisuals(m_selectedCRP);
+    // Obtenemos automáticamente el Account ID del usuario logueado en el juego
+    auto gm = GameManager::sharedState();
+    int accountID = gm->m_accountID;
+
+    // URL directa de tu panel en el FHGDPS
+    std::string url = "https://choyhomero.ps.fhgdps.com/dashboard/levels/shareCP.php"; 
+    
+    geode::utils::web::WebRequest req;
+    // Enviamos el levelID, el accountID y los puntos escritos
+    req.body(
+        "levelID=" + std::to_string(m_targetLevelID) + 
+        "&accountID=" + std::to_string(accountID) + 
+        "&points=" + pointsStr
+    );
+    req.header("Content-Type: application/x-www-form-urlencoded");
+
+    req.post(url, [this](geode::utils::web::WebResponse* response) {
+        if (response->ok()) {
+            std::string res = response->string().unwrapOr("");
+            
+            // Validaciones de respuesta en inglés
+            if (res.find("success") != std::string::npos || res == "1" || res.empty()) {
+                FLAlertLayer::create("Success", "Creator points successfully added to the level!", "OK")->show();
+                this->onClose(nullptr);
+            } 
+            else if (res.find("permissions") != std::string::npos || res.find("unauthorized") != std::string::npos || res == "0") {
+                FLAlertLayer::create("Access Denied", "You do not have permissions", "OK")->show();
+            } 
+            else {
+                FLAlertLayer::create("Notice", "Server response: " + res, "OK")->show();
+            }
+        } else {
+            FLAlertLayer::create("Network Error", "Could not connect to the server.", "OK")->show();
+        }
+    });
 }
 
-void ShareCRPPopup::onIncrease(CCObject *) {
-    m_selectedCRP++;
-    updateCRPVisuals(m_selectedCRP);
-}
-
-void ShareCRPPopup::onCancel(CCObject *) {
-    this->onClose(nullptr);
-}
-
-void ShareCRPPopup::onSubmit(CCObject *) {
-    log::debug("Enviando {} CRP para la cuenta ID: {}", m_selectedCRP, m_targetAccountID);
-
-    FLAlertLayer::create("ShareCRP", fmt::format("¡Asignados {} CRP con éxito!", m_selectedCRP), "OK")->show();
-    this->onClose(nullptr);
-}
-
-void ShareCRPPopup::updateCRPVisuals(int crp) {
-    m_crpLabel->setString(std::to_string(crp).c_str());
-}
-
-ShareCRPPopup *ShareCRPPopup::create(int accountID) {
-    auto ret = new ShareCRPPopup();
-    if (ret && ret->init(accountID)) {
-        ret->autorelease();
-        return ret;
-    }
-
-    delete ret;
-    return nullptr;
+void ShareCRPPopup::onClose(CCObject* sender) {
+    this->removeFromAndCleanup(true);
 }
