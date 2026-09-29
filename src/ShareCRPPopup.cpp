@@ -2,7 +2,7 @@
 
 ShareCRPPopup* ShareCRPPopup::create(int levelID) {
     auto ret = new ShareCRPPopup();
-    if (ret && ret->initAnchored(300.f, 200.f, levelID)) {
+    if (ret && ret->init(300.f, 200.f, levelID)) {
         ret->autorelease();
         return ret;
     }
@@ -22,7 +22,7 @@ bool ShareCRPPopup::setup(int levelID) {
     // Campo de texto para los puntos
     m_pointsInput = TextInput::create(150.f, "Points", "chatFont.fnt");
     m_pointsInput->setPosition(m_size / 2);
-    m_pointsInput->setAllowedChars("0123456789-");
+    m_pointsInput->setFilter("0123456789-");
     m_mainLayer->addChild(m_pointsInput);
 
     // Botón de enviar
@@ -44,22 +44,18 @@ void ShareCRPPopup::onSubmitButton(CCObject* sender) {
     std::string pointsStr = m_pointsInput->getString();
     if (pointsStr.empty()) return;
 
-    auto gm = GameManager::sharedState();
-    // Usamos el accountID mediante el GameStatsManager o métodos seguros de la cuenta activa
     int accountID = GJAccountManager::sharedState()->m_accountID;
-
     std::string url = "https://choyhomero.ps.fhgdps.com/dashboard/levels/shareCP.php"; 
     
-    geode::utils::web::WebRequest req;
-    req.body(
-        "levelID=" + std::to_string(m_targetLevelID) + 
-        "&accountID=" + std::to_string(accountID) + 
-        "&points=" + pointsStr
-    );
+    std::string postData = "levelID=" + std::to_string(m_targetLevelID) + 
+                           "&accountID=" + std::to_string(accountID) + 
+                           "&points=" + pointsStr;
+
+    web::WebRequest req;
+    req.bodyString(postData);
     req.header("Content-Type", "application/x-www-form-urlencoded");
 
-    // Pasamos la solicitud web de forma compatible con la versión actual de Geode
-    req.post(url, [this](geode::utils::web::WebResponse* response) {
+    req.post(url, [this](web::WebResponse* response) {
         if (response->ok()) {
             std::string res = response->string().unwrapOr("");
             
